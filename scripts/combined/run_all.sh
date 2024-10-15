@@ -31,13 +31,13 @@ MLFLOW_URI="${LARGE_DATA_DIR}/mlflow/mlruns"
 MODEL_BASE="helena-balabin/robbert-2023-dutch-base-ft-nlp-xxl"
 
 # 1. Data processing
-python3 $REPO_DIR/data/prepare_disease_status_datasets.py prepare-ad-hc-amyloid-pos-neg-datasets \
+python3 $REPO_DIR/connected_speech_classification/data/prepare_disease_status_datasets.py prepare-ad-hc-amyloid-pos-neg-datasets \
 	--combined_dataset_dir "${REPO_DIR}/data/input/combined-cohort-e2e-v4"
 
 # 2. Experiment 1: Independent classification
 # 2.1 Classification on AD vs half of amyloid negative HC
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
  	--config "$q" \
 	--batch_size $BATCH_SIZE \
 	--epochs $EPOCHS \
@@ -48,7 +48,7 @@ python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
 done
 # 2.2 Classification of amyloid positive vs other half of amyloid negative HC
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classify_amyloid \
 	--batch_size $BATCH_SIZE \
@@ -60,7 +60,7 @@ python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
 done
 # 2.3 Classification of amyloid negative group 1 versus amyloid negative group 2
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classify_baseline \
 	--batch_size $BATCH_SIZE \
@@ -76,7 +76,7 @@ done
 saved_model_folder="${LARGE_DATA_DIR}/huggingface/transformers/ad_half_neg_hc_subject_wise_ad_hc_ft_subject_wise_helena-balabin-robbert-2023-dutch-base-ft-nlp-xxl"
 # Use the classification model that has been trained on AD vs half of amyloid negative (combined interview) to classify amyloid positive versus other half of amyloid negative
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classification_model_base "$saved_model_folder" \
 	--classify_amyloid \
@@ -91,7 +91,7 @@ done
 # 4. Experiment 3: Joint multi-task classification
 # Train a classification model jointly on AD vs amyloid negative HC and amyloid positive versus amyloid negative
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classify_jointly \
 	--batch_size $BATCH_SIZE \
@@ -110,21 +110,21 @@ mlflow experiments csv -x 136153611125199525 -o "${REPO_DIR}/data/output/mlflow-
 mlflow experiments csv -x 861177041110502316 -o "${REPO_DIR}/data/output/mlflow-results/baseline_cls.csv"
 
 # 5.2 Convert the csv files to LaTeX tables
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv"
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv"
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv"
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/baseline_cls.csv"
 
 # 5.3 Also for the first data_split
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv" --data_split 0
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv" --data_split 0
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv" --data_split 0
-python3 $REPO_DIR/evaluation/format_mlflow_results.py convert-mlflow-tables \
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/baseline_cls.csv" --data_split 0

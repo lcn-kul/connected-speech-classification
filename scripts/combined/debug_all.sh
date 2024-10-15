@@ -28,13 +28,13 @@ read LARGE_DATA_DIR
 LARGE_DATA_DIR=${LARGE_DATA_DIR:-./data/}
 
 # 1. Data processing
-python3 $REPO_DIRsrc/nlphumanbraintext/data/prepare_disease_status_datasets.py prepare-ad-hc-amyloid-pos-neg-datasets \
-	--combined_dataset_dir "${REPO_DIR}data/input/combined-cohort-e2e-v4"
+python3 $REPO_DIR/connected_speech_classification/data/prepare_disease_status_datasets.py prepare-ad-hc-amyloid-pos-neg-datasets \
+	--combined_dataset_dir "${REPO_DIR}/data/input/combined-cohort-e2e-v4"
 
 # 2. Experiment 1: Independent classification
 # 2.1 Classification on AD vs half of amyloid negative HC
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/src/nlphumanbraintext/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--batch_size 4 \
 	--k_folds $FOLDS \
@@ -46,7 +46,7 @@ python3 $REPO_DIR/src/nlphumanbraintext/models/disease_status_classifier.py clas
 done
 # 2.2 Classification of amyloid positive vs other half of amyloid negative HC
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/src/nlphumanbraintext/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classify_amyloid \
 	--batch_size 4 \
@@ -67,7 +67,7 @@ echo "Checkpoint folder for exp 2: $first_checkpoint_folder"
 
 # Use the classification model that has been trained on AD vs half of amyloid negative (combined interview) to classify amyloid positive versus other half of amyloid negative
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/src/nlphumanbraintext/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classification_model_base "$first_checkpoint_folder" \
 	--classify_amyloid \
@@ -83,7 +83,7 @@ done
 # 4. Experiment 3: Joint multi-task classification
 # Train a classification model jointly on AD vs HC and amyloid positive versus amyloid negative
 for q in "${allQs[@]}"; do
-python3 $REPO_DIR/src/nlphumanbraintext/models/disease_status_classifier.py classify-disease-label \
+python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
 	--config "$q" \
 	--classify_jointly \
 	--batch_size 4 \
@@ -97,17 +97,17 @@ done
 
 # 5. Mlflow results to LaTeX tables
 # 5.1 Export the mlflow experiments to csv files
-mlflow experiments csv -x 685451340341447252 -o "${REPO_DIR}data/output/mlflow-results/ad_hc_cls.csv"
-mlflow experiments csv -x 523382240786442755 -o "${REPO_DIR}data/output/mlflow-results/amyloid_cls.csv"
-mlflow experiments csv -x 136153611125199525 -o "${REPO_DIR}data/output/mlflow-results/joint_ad_amyloid_cls.csv"
+mlflow experiments csv -x 685451340341447252 -o "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv"
+mlflow experiments csv -x 523382240786442755 -o "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv"
+mlflow experiments csv -x 136153611125199525 -o "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv"
 # 5.2 Convert the csv files to LaTeX tables
-python3 $REPO_DIR/src/nlphumanbraintext/evaluation/format_mlflow_results.py convert-mlflow-tables \
-	--result_file "${REPO_DIR}data/output/mlflow-results/ad_hc_cls.csv" \
-	--output_dir "${REPO_DIR}data/output/mlflow-results-debug"
-python3 $REPO_DIR/src/nlphumanbraintext/evaluation/format_mlflow_results.py convert-mlflow-tables \
-	--result_file "${REPO_DIR}data/output/mlflow-results/amyloid_cls.csv" \
-	--output_dir "${REPO_DIR}data/output/mlflow-results-debug"
-python3 $REPO_DIR/src/nlphumanbraintext/evaluation/format_mlflow_results.py convert-mlflow-tables \
-	--result_file "${REPO_DIR}data/output/mlflow-results/joint_ad_amyloid_cls.csv" \
-	--output_dir "${REPO_DIR}data/output/mlflow-results-debug"
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
+	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv" \
+	--output_dir "${REPO_DIR}/data/output/mlflow-results-debug"
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
+	--result_file "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv" \
+	--output_dir "${REPO_DIR}/data/output/mlflow-results-debug"
+python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
+	--result_file "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv" \
+	--output_dir "${REPO_DIR}/data/output/mlflow-results-debug"
 
