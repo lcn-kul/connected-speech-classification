@@ -6,56 +6,81 @@
 
 Classification of Alzheimer's disease and Amyloid Status from Transcribed Connected Speech.
 
-## Project Organization
+## Installation 
+
+To install the code, do the following:
 
 ```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         connected_speech_classification and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── connected_speech_classification   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes connected_speech_classification a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
+pip install git+https://github.com/lcn-kul/connected_speech_classification.git
 ```
 
---------
+Requirements can be installed from the ```requirements.txt``` file doing something like this:
 
+```
+conda create --name connected-speech-classification python=3.11
+pip install -r requirements.txt
+```
+
+## Reproduction of Results
+
+![alt text](images/AD_Classification_Overview_Figure_v8.png)
+
+The analysis roughly consists of three steps: Data preparation, classification, formatting of the results. 
+
+### Data Preparation
+
+```
+python ./connected_speech_classification/data/prepare_disease_status_datasets.py prepare-ad-hc-amyloid-pos-neg-datasets
+```
+### Running the Models
+
+1. Independent classification 
+
+1.1 Classification on AD vs half of amyloid negative HC
+
+```
+python ./connected_speech_classification/models/disease_status_classifier classify-disease-label
+```
+
+1.2 Classification of amyloid positive vs other half of amyloid negative HC
+
+```
+python ./connected_speech_classification/models/disease_status_classifier classify-disease-label --classify_amyloid
+```
+
+1.3 Classification of amyloid negative group 1 versus amyloid negative group 2
+
+```
+python ./connected_speech_classification/models/disease_status_classifier classify-disease-label --classify_baseline
+```
+
+2. Sequential classification
+Make sure to get the saved model ```"your-saved-model"```.
+
+```
+python ./connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
+	--classification_model_base "your-saved-model" \
+	--classify_amyloid
+```
+
+3. Joint multi-task classification
+
+In this case, you need to provide two dataset directories.
+```
+python ./connected_speech_classification/models/disease_status_classifier.py classify-disease-label \
+	--classify_jointly \
+    --dataset_dir "your-ad-dataset" \
+    --dataset_dir "your-amyloid-dataset"
+```
+
+### Formatting the Results
+
+This assumes that the mlflow database has been exported to a ```.csv``` file.
+
+```
+python ./connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables
+```
+
+### Combined Script
+
+For convenience, there are scripts in ```scripts/combined```, but they might need some additional changes.
