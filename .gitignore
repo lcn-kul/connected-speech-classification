@@ -1,6 +1,10 @@
 # Data
 /data/
 
+# Ignore bash logs and error files
+*.out
+*.err
+
 # Mac OS-specific storage files
 .DS_Store
 

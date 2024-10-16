@@ -11,16 +11,22 @@
 # This assumes that the conda environment has been created using the requirements.txt file:
 # 1. conda create --name connected_speech_classification python=3.11
 # 2. pip install -r requirements.txt
-source activate connected_speech_classification
+source activate connected-speech-classification
 
+# Note that the interactive input is not working in the SLURM environment
 # Ask the user for the repository directory with a default value
 echo "Please provide the path to the repository directory (default: ./):"
 read REPO_DIR
-REPO_DIR=${REPO_DIR:-./}
+REPO_DIR=${REPO_DIR:-../../}
+REPO_DIR=$(realpath "$REPO_DIR")
+echo "Using repository directory: $REPO_DIR"
+
 # Ask the user for the large data directory with a default value
-echo "Please provide the path to the large data directory (default: ./data/):"
+echo "Please provide the path to the large data directory (default: ./data):"
 read LARGE_DATA_DIR
-LARGE_DATA_DIR=${LARGE_DATA_DIR:-./data/}
+LARGE_DATA_DIR=${LARGE_DATA_DIR:-../../data}
+LARGE_DATA_DIR=$(realpath "$LARGE_DATA_DIR")
+echo "Using large data directory: $LARGE_DATA_DIR"
 
 # Define all interview parts
 allQs=("q1_short_subject_wise" "q5_subject_wise" "q4_subject_wise" "q3_subject_wise" "q2_subject_wise" "q1_subject_wise" "subject_wise")
