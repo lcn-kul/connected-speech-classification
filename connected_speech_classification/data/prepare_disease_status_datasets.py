@@ -224,7 +224,7 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
     :type replace_punctuation: bool
     :param max_seq_len: Maximum sequence length.
     :type max_seq_len: int
-    :param longformer: Whether the input should be processed for a model that can handle longer 
+    :param longformer: Whether the input should be processed for a model that can handle longer
         input lengths (combine multiple files).
     :type longformer: bool
     :param iterations: Number of iterations for creating multiple splits of the two amyloid negative groups.
@@ -286,15 +286,15 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
         amyloid_neg_dataset = combined_dataset.filter(
             lambda example: example["ad_label"] == 0 and example["amyloid_label"] == 0
         )
-        amyloid_neg_subject_ids = sorted(list(set(amyloid_neg_dataset["subject_id"])))
+        amyloid_neg_subject_ids = sorted(set(amyloid_neg_dataset["subject_id"]))
         labels_subset = labels[labels.index.isin(amyloid_neg_subject_ids)]
- 
+
         overlap_between_iterations = []
         for i in range(iterations):
             # Split this last third group in two halves and check that are matched by age, sex and education
             # Use multiple splits to mitigate biases
-            logger.info(f"Iteration {i} of creating multiple amyloid negative splits for {config}")           
-            
+            logger.info(f"Iteration {i} of creating multiple amyloid negative splits for {config}")
+
             matched_by_variables = False
             j = 0
             while not matched_by_variables:
@@ -315,7 +315,7 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
                 amyloid_neg_second_half_dataset = amyloid_neg_dataset.filter(
                     lambda example: example["subject_id"] in amyloid_neg_second_half_subject_ids
                 )
-                
+
                 # Check if the age, sex and education are not statistically different between the two halves with a t-test
                 labels_subset_first_half = labels_subset[labels_subset.index.isin(amyloid_neg_first_half_subject_ids)]
                 labels_subset_second_half = labels_subset[labels_subset.index.isin(amyloid_neg_second_half_subject_ids)]
@@ -346,7 +346,8 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
             if len(overlap_between_iterations) > 1:
                 # Log the percentage of overlap between the current split and each of the previous splits
                 for j, previous_split in enumerate(overlap_between_iterations[:-1]):
-                    overlap = len(set(amyloid_neg_first_half_subject_ids) & set(previous_split[0])) / len(set(amyloid_neg_first_half_subject_ids))
+                    overlap = len(set(amyloid_neg_first_half_subject_ids) & set(previous_split[0])) \
+                        / len(set(amyloid_neg_first_half_subject_ids))
                     logger.info(f"Overlap with previous split {j}: {overlap}")
                 logger.info("\n")
 
@@ -365,7 +366,7 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
             # Describe the dataset
             logger.info(f"{config} Amyloid positive vs negative dataset {i}")
             describe_dataset_labels(amyloid_pos_neg_dataset, "amyloid_label")
-            
+
             # Stitch 3.1 and 3.2 together for an amyloid negative classification control task
             # But first add new labels that indicate the group
             amyloid_neg_first_half_dataset = amyloid_neg_first_half_dataset.map(
@@ -374,7 +375,9 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
             amyloid_neg_second_half_dataset = amyloid_neg_second_half_dataset.map(
                 lambda example: {**example, "group_label": 1}
             )
-            amyloid_neg_baseline_dataset = concatenate_datasets([amyloid_neg_first_half_dataset, amyloid_neg_second_half_dataset])
+            amyloid_neg_baseline_dataset = concatenate_datasets(
+                [amyloid_neg_first_half_dataset, amyloid_neg_second_half_dataset]
+            )
             # Shuffle the dataset with a fixed seed
             amyloid_neg_baseline_dataset = amyloid_neg_baseline_dataset.shuffle(seed=42)
             # Describe the dataset

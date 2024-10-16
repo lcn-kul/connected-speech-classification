@@ -13,7 +13,7 @@ def get_roc_auc_plot_cv(
     plot_all_folds: bool = True,
 ) -> Tuple[np.array, np.array, plt.Figure]:
     """Generate a ROC curve plot with variability across folds in a cross-validation experiment.
-    
+
     :param fprs_original: False positive rates for each fold, shape (n_splits, n_samples)
     :type fprs_original: np.array
     :param tprs_original: True positive rates for each fold, shape (n_splits, n_samples)
@@ -28,7 +28,7 @@ def get_roc_auc_plot_cv(
     mean_fpr = np.linspace(0, 1, 100)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    for fold, (fpr, tpr) in enumerate(zip(fprs_original, tprs_original)):
+    for fold, (fpr, tpr) in enumerate(zip(fprs_original, tprs_original, strict=False)):
         viz = RocCurveDisplay(
             fpr=fpr,
             tpr=tpr,
@@ -47,7 +47,7 @@ def get_roc_auc_plot_cv(
         aucs.append(viz.roc_auc)
 
     mean_tpr = np.mean(tprs, axis=0)
-    mean_tpr[-1] = 1.0 
+    mean_tpr[-1] = 1.0
     mean_auc = auc(mean_fpr, mean_tpr)
     std_auc = np.std(aucs)
     ax.plot(
@@ -85,8 +85,8 @@ def get_roc_auc_plot_cv(
     ax.yaxis.label.set_size(16)
     ax.title.set_fontsize(16)
     ax.legend(loc="lower right")
-    
+
     plt.tight_layout()
     plt.close(fig)
-    
+
     return mean_fpr, mean_tpr, fig

@@ -318,7 +318,7 @@ def get_train_test_datasets(
     unique_subjects_all_datasets: Dict[str, List[str]],
 ) -> Tuple[Dataset, Dataset]:
     """Get training and test datasets based on the StratifiedKFold splits for the disease status classifier.
-    
+
     :param combined_datasets: Dictionary of datasets to (eventually) combine
     :type combined_datasets: Dict[str, Dataset]
     :param unique_subjects: List of unique subject IDs
@@ -343,21 +343,21 @@ def get_train_test_datasets(
         train_dataset = combined_dataset.filter(lambda x: x["subject_id"] in train_subjects)
         test_dataset = combined_dataset.filter(lambda x: x["subject_id"] in test_subjects)
     else:
-        # Interleave batches for train and keep a dictionary with two separate sets for test for 
+        # Interleave batches for train and keep a dictionary with two separate sets for test for
         # the multiple datasets case
         train_dataset = []
-        for name, specific_train_idx in zip(combined_datasets.keys(), train_idx):
+        for name, specific_train_idx in zip(combined_datasets.keys(), train_idx, strict=False):
             train_subjects = [unique_subjects_all_datasets[name][i] for i in specific_train_idx]
             train_dataset.append(combined_datasets[name].filter(lambda x: x["subject_id"] in train_subjects))
-            
+
         # Instead of directly interleaving the datasets, which would interleave the individual examples,
-        # we want to interleave batches, so that each batch is from one dataset 
+        # we want to interleave batches, so that each batch is from one dataset
         # For that we split the dataset into smaller datasets of size batch_size
         train_dataset = [
             [
                 dataset.select(range(i, min(i + batch_size, len(dataset))))
                 for i in range(0, len(dataset), batch_size)
-            ] 
+            ]
             for dataset in train_dataset
         ]
         # Put the last examples that are shorter than the batch size aside
@@ -366,15 +366,15 @@ def get_train_test_datasets(
         train_dataset = [x for x in chain(*zip_longest(train_dataset[0], train_dataset[1])) if x is not None]
         # Put the examples that are shorter than the batch size at the end of the list
         train_dataset += last_examples
-        
+
         # Then concatenate the list of datasets
         train_dataset = concatenate_datasets(train_dataset)
-        
+
         test_dataset = {}
-        for name, specific_test_idx in zip(combined_datasets.keys(), test_idx):
+        for name, specific_test_idx in zip(combined_datasets.keys(), test_idx, strict=False):
             test_subjects = [unique_subjects_all_datasets[name][i] for i in specific_test_idx]
             test_dataset[name] = combined_datasets[name].filter(lambda x: x["subject_id"] in test_subjects)
-            
+
     return train_dataset, test_dataset
 
 
@@ -386,7 +386,7 @@ def log_data_split_specific_auc_metrics(
     disease_status: str = "ad_hc",
 ):
     """Log data split specific AUC-based metrics for the disease status classifier.
-    
+
     :param task: Task for which to log the metrics
     :type task: str
     :param level: Level for which to log the metrics
@@ -409,12 +409,12 @@ def log_data_split_specific_auc_metrics(
     mlflow.log_metric(f"mean_ci_{task}{level}_auc_upper", ci[1])
     # Don't create an average of "all_fpr"/"all_tpr", but use them as input for the ROC curve plot
     mean_fpr, mean_tpr, fig = get_roc_auc_plot_cv(
-        fold_metrics[f"{task}{level}_all_fpr"], 
+        fold_metrics[f"{task}{level}_all_fpr"],
         fold_metrics[f"{task}{level}_all_tpr"],
     )
     mlflow.log_figure(fig, f"{task}{level}_roc_curve.png")
     _, _, fig_without_folds = get_roc_auc_plot_cv(
-        fold_metrics[f"{task}{level}_all_fpr"], 
+        fold_metrics[f"{task}{level}_all_fpr"],
         fold_metrics[f"{task}{level}_all_tpr"],
         plot_all_folds=False,
     )
@@ -423,7 +423,7 @@ def log_data_split_specific_auc_metrics(
     # log them as a param
     mlflow.log_param(f"mean_{task}{level}_all_fpr_{split}", mean_fpr)
     mlflow.log_param(f"mean_{task}{level}_all_tpr_{split}", mean_tpr)
-    
+
     # Plot confusion matrix and also optimal one
     conf_matrix = fold_metrics[f"{task}{level}_conf_matrix"]
     optimal_conf_matrix = fold_metrics[f"{task}{level}_optimal_conf_matrix"]
@@ -436,8 +436,8 @@ def log_data_split_specific_auc_metrics(
         labels = ["amyloid- CU #1", "amyloid- CU #2"]
     else:
         labels = ["amyloid- CU", "prodromal AD"]
-    
-    for matrix, name in zip([conf_matrix, optimal_conf_matrix], ["conf_matrix", "optimal_conf_matrix"]):
+
+    for matrix, name in zip([conf_matrix, optimal_conf_matrix], ["conf_matrix", "optimal_conf_matrix"], strict=False):
         conf_matrix = plot_confusion_matrix(
             matrix,
             labels,

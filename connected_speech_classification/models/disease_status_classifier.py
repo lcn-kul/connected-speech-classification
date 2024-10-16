@@ -67,11 +67,11 @@ from connected_speech_classification.visualization.visualize_classification_metr
 @click.option("--debug", is_flag=True, default=False)
 def classify_disease_label(
     classification_model_base: str = FINE_TUNED_NLP_XXL_MODEL,
-    dataset_dir: List[str] = [AD_AM_NEG_HC_DATASET_DIR],
+    dataset_dir: List[str] = None,
     config: str = "q1_subject_wise",
     classify_amyloid: bool = False,
     classify_jointly: bool = False,
-    classify_baseline: bool = False,    
+    classify_baseline: bool = False,
     k_folds: int = 5,
     max_seq_len: int = 512,
     batch_size: int = 16,
@@ -141,6 +141,8 @@ def classify_disease_label(
     :type debug: bool
     """
     # Check whether the model is a longformer model
+    if dataset_dir is None:
+        dataset_dir = [AD_AM_NEG_HC_DATASET_DIR]
     longformer = "longformer" in classification_model_base
     # Check if amyloid status should be classified, or if joint classification should be performed
     disease_status = "ad_hc"
@@ -154,18 +156,19 @@ def classify_disease_label(
     # Split by tasks for multi-task learning
     tasks = ["ad_", "amyloid_"] if classify_jointly else [""]
 
-    # If the dataset is a directory (i.e., a previously trained model rather than a pretrained one from the huggingface model hub),
+    # If the dataset is a directory (i.e., a previously trained
+    # model rather than a pretrained one from the huggingface model hub),
     # use a random data split to get the tokenizer
     tokenizer_base = None
     if os.path.isdir(classification_model_base):
-        tokenizer_base = classification_model_base + "_0" 
+        tokenizer_base = classification_model_base + "_0"
     # Initialize the tokenizer
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_base if tokenizer_base else classification_model_base,
     )
-    
+
     # Initialize the cross-validation folds
-    folds = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)  
+    folds = StratifiedKFold(n_splits=k_folds, shuffle=True, random_state=42)
 
     # Setup MLflow experiment tracking for tracking the metrics
     debug_flag = "debug_" if debug else ""
@@ -182,7 +185,7 @@ def classify_disease_label(
     # Load the labels metadata needed for the evaluation later on
     labels_meta_npo = pd.read_csv(labels_meta_npo_file)
 
-    # In total, there are 3 levels of nested runs: top-level configuration/interview part specific, 
+    # In total, there are 3 levels of nested runs: top-level configuration/interview part specific,
     # data split specific, and fold specific
     # 1) Start the top-level configuration-specific experiment run
     with mlflow.start_run(run_name=f"{config}_{classification_model_base}"):
@@ -192,7 +195,7 @@ def classify_disease_label(
             for task in tasks:
                 for level in ["subject", "item"]:
                     data_split_metrics[f"{task}{level}_{metric}"] = []
-        
+
         # Iterate over different splits of the amyloid negative group
         for i in range(n_data_splits):
             # Create output directories if they don't exist
@@ -210,17 +213,17 @@ def classify_disease_label(
                 ),
                 exist_ok=True,
             )
-            
+
             # Define some helper variables
             combined_datasets = {}
             unique_subjects_all_datasets = {}
             splits = []
-            
+
             for data_path in dataset_dir:
                 # Modify the dataset path to include the data split
                 data_path = data_path + f"_{i}"
                 combined_dataset = load_from_disk(data_path)
-                # Get the correct label depending on whether amyloid status should be classified or AD vs HC or 
+                # Get the correct label depending on whether amyloid status should be classified or AD vs HC or
                 # baseline classification (amyloid neg group 1 vs amyloid neg group 2)
                 if "baseline" in data_path:
                     label_key = "group_label"
@@ -228,20 +231,20 @@ def classify_disease_label(
                     label_key = "amyloid_label"
                 else:
                     label_key = "ad_label"
-                
+
                 # Rename the label key
                 combined_dataset = combined_dataset.rename_column(label_key, "label")
-                # Cast the label to int 
+                # Cast the label to int
                 combined_dataset = combined_dataset.cast_column("label", Value(dtype="int32"))
                 combined_dataset = combined_dataset.class_encode_column("label")
-                # Remove the other label 
+                # Remove the other label
                 combined_dataset = combined_dataset.remove_columns("ad_label" if "amyloid" in data_path else "amyloid_label")
-                
+
                 # Add a task id to the dataset
                 combined_dataset = combined_dataset.map(
                     lambda x: {"task_ids": 0 if "ad" in label_key else 1, **x},
                 )
-                
+
                 # Get the sentence key
                 sent_key = [k for k in combined_dataset.features.keys() if "subject_id" not in k][0]
                 # Tokenize the dataset
@@ -264,17 +267,21 @@ def classify_disease_label(
                 unique_subjects = combined_dataset.unique("subject_id")
                 unique_subjects_all_datasets[label_key.replace(r"_label", "")] = unique_subjects
                 # Get the labels for these subjects
-                subject_labels = [combined_dataset.filter(lambda x: x["subject_id"] == subject)[0]["label"] for subject in unique_subjects]
+                subject_labels = [
+                    combined_dataset.filter(
+                    lambda x: x["subject_id"] == subject
+                    )[0]["label"] for subject in unique_subjects
+                ]
                 if len(splits) == 0:
                     splits = list(folds.split(np.zeros(len(unique_subjects)), subject_labels))
                 # If there are multiple datasets, we need to create the splits for each dataset and put them together
                 else:
                     additional_splits = list(folds.split(np.zeros(len(unique_subjects)), subject_labels))
-                    # Zip the splits and the additional splits, so that the result is a list of 
+                    # Zip the splits and the additional splits, so that the result is a list of
                     # ((train_idx_sp, train_idx_add), (test_idx_sp, test_idx_add))
-                    splits = list(zip(splits, additional_splits))
+                    splits = list(zip(splits, additional_splits, strict=False))
                     splits = [((split[0][0], split[1][0]), (split[0][1], split[1][1])) for split in splits]
-            
+
             # Record metrics averaged across folds for each data split configuration
             fold_metrics = {}
             for metric in CLS_METRICS + ["predictions", "optimal_predictions", "labels", "subject_ids"]:
@@ -288,14 +295,14 @@ def classify_disease_label(
                             # Also store the predictions for the confusion matrix
                             fold_metrics[f"{task}{level}_conf_matrix"] = np.zeros((2, 2))
                             fold_metrics[f"{task}{level}_optimal_conf_matrix"] = np.zeros((2, 2))
-            
+
             # 2) Start the data split-specific experiment run
             with mlflow.start_run(run_name=f"data_split_{i}", nested=True):
                 # Create a data-split specific output directory for the predictions
                 data_split_predictions_dir = os.path.join(top_level_predictions_dir, f"data_split_{i}")
                 os.makedirs(data_split_predictions_dir, exist_ok=True)
 
-                mlflow.log_param("data_split", i)                 
+                mlflow.log_param("data_split", i)
                 # Log the datasets
                 for idx, combined_dataset in enumerate(combined_datasets.values()):
                     mlflow.log_artifacts(f"{dataset_dir[idx]}_{i}")
@@ -315,7 +322,7 @@ def classify_disease_label(
                             batch_size=batch_size,
                             unique_subjects_all_datasets=unique_subjects_all_datasets,
                         )
-                        
+
                         # Define the callback(s)
                         callbacks = [MLflowCallback()]
                         if early_stopping:
@@ -323,33 +330,37 @@ def classify_disease_label(
                             early_stopping_callback = EarlyStoppingCallback(early_stopping_patience=early_stopping_patience)
                             callbacks.append(early_stopping_callback)
 
-                        # If the dataset is a directory (i.e., a previously trained model rather than a pretrained one from the huggingface model hub),
+                        # If the dataset is a directory (i.e., a previously trained model
+                        # rather than a pretrained one from the huggingface model hub),
                         # append the data split index to the model output directory
                         classification_model_base_with_index = None
                         if os.path.isdir(classification_model_base):
-                            classification_model_base_with_index = classification_model_base + f"_{i}" 
+                            classification_model_base_with_index = classification_model_base + f"_{i}"
 
                         # Initialize a custom model with two (shared) classification heads for joint classification
                         if classify_jointly:
                             model_config = AutoConfig.from_pretrained(
-                                classification_model_base_with_index if classification_model_base_with_index else classification_model_base
+                                classification_model_base_with_index if \
+                                    classification_model_base_with_index else classification_model_base
                             )
                             model_config.num_labels = 2
                             model_config.add_pooling_layer = False
-                                
+
                             model = MultiTaskSequenceClassificationModel(
-                                classification_model_base_with_index if classification_model_base_with_index else classification_model_base,
+                                classification_model_base_with_index if \
+                                    classification_model_base_with_index else classification_model_base,
                                 config=model_config,
                                 cache_dir=model_output_dir,
                             )
                         # Or initialize a model with a single head for classification
                         else:
                             model = AutoModelForSequenceClassification.from_pretrained(
-                                classification_model_base_with_index if classification_model_base_with_index else classification_model_base,
+                                classification_model_base_with_index if \
+                                    classification_model_base_with_index else classification_model_base,
                                 num_labels=2,
                                 cache_dir=model_output_dir,
                             )
-                            
+
                         # Freeze most layers of the model (except for last transformer + cls layers), if specified
                         if freeze_most_layers:
                             # Get the number of transformer layers
@@ -361,7 +372,7 @@ def classify_disease_label(
                                     param.requires_grad = True
                                 else:
                                     param.requires_grad = False
-                        
+
                         # Initialize the trainer
                         trainer = Trainer(
                             model=model,
@@ -375,7 +386,8 @@ def classify_disease_label(
                                 num_train_epochs=epochs,
                                 per_device_train_batch_size=batch_size,
                                 per_device_eval_batch_size=batch_size,
-                                eval_accumulation_steps=len(test_dataset)//batch_size + 1,  # This is to make sure the evaluation is done on the entire set at once
+                                eval_accumulation_steps=len(test_dataset)//batch_size + 1,
+                                # This is to make sure the evaluation is done on the entire set at once
                                 gradient_accumulation_steps=gradient_accumulation_steps,
                                 warmup_ratio=0.1,
                                 logging_dir=os.path.join(
@@ -391,9 +403,12 @@ def classify_disease_label(
                                 if longformer
                                 else False,  # Use mixed precision training for longformer models
                                 load_best_model_at_end=True if early_stopping else False,
-                                metric_for_best_model="eval_amyloid_loss" if classify_jointly else early_stopping_metric,
-                                group_by_length=True if classify_jointly else False, # Improvised way to group the tasks into the batches
-                                length_column_name="task_ids" if classify_jointly else "length", # Improvised way to group the tasks into the batches
+                                metric_for_best_model="eval_amyloid_loss" if classify_jointly \
+                                    else early_stopping_metric,
+                                group_by_length=True if classify_jointly else False,
+                                # Improvised way to group the tasks into the batches
+                                length_column_name="task_ids" if classify_jointly else "length",
+                                # Improvised way to group the tasks into the batches
                                 report_to="mlflow",
                             ),
                             train_dataset=train_dataset,
@@ -415,7 +430,9 @@ def classify_disease_label(
                                         fold_metrics[f"{task}{level}_all_fpr"][fold] = metrics[f"eval_{task}{level}_all_fpr"]
                                         fold_metrics[f"{task}{level}_all_tpr"][fold] = metrics[f"eval_{task}{level}_all_tpr"]
                                         fold_metrics[f"{task}{level}_conf_matrix"] += metrics[f"eval_{task}{level}_conf_matrix"]
-                                        fold_metrics[f"{task}{level}_optimal_conf_matrix"] += metrics[f"eval_{task}{level}_optimal_conf_matrix"]
+                                        fold_metrics[f"{task}{level}_optimal_conf_matrix"] += metrics[
+                                            f"eval_{task}{level}_optimal_conf_matrix"
+                                        ]
 
                         # Save the model once at the end
                         trainer.save_model()
@@ -455,7 +472,9 @@ def classify_disease_label(
                             data = np.concatenate(data).tolist()
                         task_data[metric] = data
                     # Add the cross-validation split
-                    task_data["cv_split"] = [[i] * len(fold_metrics[f"{task}subject_predictions"][i]) for i in range(k_folds)]
+                    task_data["cv_split"] = [
+                        [i] * len(fold_metrics[f"{task}subject_predictions"][i]) for i in range(k_folds)
+                    ]
                     # Flatten the cv_split
                     task_data["cv_split"] = [item for sublist in task_data["cv_split"] for item in sublist]
                     # Create a data frame
@@ -464,7 +483,7 @@ def classify_disease_label(
                     task_df = task_df.rename(columns={"subject_ids": "subject_id"})
                     # Merge the data frame with the labels metadata
                     task_df = task_df.merge(labels_meta_npo, on="subject_id")
-                    
+
                     # Create a confusion matrix: First get the labels for the confusion matrix
                     if disease_status == "baseline":
                         task_label = "Amyloid- CU"
@@ -474,7 +493,7 @@ def classify_disease_label(
                         task_label = "Amyloid+ CU"
                     else:
                         task_label = "Prodromal AD"
-                    
+
                     # Create a confusion matrix for correct predictions vs the one/two/three_norm_below_min_1 column
                     for norm_col in ["one_norm_below_min_1", "two_norms_below_min_1", "three_norms_below_min_1"]:
                         for preds_col in ["predictions", "optimal_predictions"]:
@@ -499,8 +518,8 @@ def classify_disease_label(
                             )
                             # Log the confusion matrix
                             mlflow.log_figure(conf_plot, f"{task}{norm_col}_{preds_col}_confusion_matrix.png")
-                    
-                        # Also create a confusion matrix for label vs 
+
+                        # Also create a confusion matrix for label vs
                         # the one/two/three_norm_below_min_1 column
                         # Create a confusion matrix
                         confusion_matrix_ground_truth = pd.crosstab(
@@ -557,7 +576,7 @@ def classify_disease_label(
                         mlflow.log_metric(
                             f"mean_{task}{level}_{metric}_ci_lower",
                             np.mean(data_split_metrics[f"{task}{level}_{metric}"]) - 1.96 * np.mean(sems),
-                        )  
+                        )
 
         # Log some parameters
         mlflow.log_param("disease_status", disease_status)

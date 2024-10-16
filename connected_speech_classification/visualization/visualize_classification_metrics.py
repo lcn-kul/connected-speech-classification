@@ -22,6 +22,13 @@ def visualize_classification_metrics(
     results_dir: str,
     metrics: List[str] = ["accuracy", "precision", "recall", "f1", "specificity"],  # noqa
 ) -> None:
+    """Visualize classification metrics based on results obtained from mlflow logging.
+
+    :param results_dir: The directory where the results are stored.
+    :type results_dir: str
+    :param metrics: The metrics to visualize.
+    :type metrics: List[str]
+    """
     # Get all possible csv files in the results directory
     csv_files = glob(f"{results_dir}/*.csv")
     # Read a dataframe per csv file, put them into a dictionary, the key is the last part of the csv file path
@@ -69,14 +76,14 @@ def visualize_classification_metrics(
 
 
 def plot_confusion_matrix(
-    matrix: np.array, 
+    matrix: np.array,
     labels: List[str],  # noqa
     xlabel: str = "Predicted label",
     ylabel: str = "True label",
     color_palette: str = "Purp",
 ) -> plt.Figure:
     """Plot a confusion matrix.
-    
+
     :param matrix: The confusion matrix.
     :type matrix: np.array
     :param labels: The labels of the confusion matrix.

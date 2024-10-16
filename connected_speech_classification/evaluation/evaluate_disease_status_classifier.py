@@ -1,5 +1,5 @@
 """Some helper functions to evaluate a disease status classifier."""
-# Imports 
+# Imports
 from typing import Dict, Union
 
 import numpy as np
@@ -35,14 +35,14 @@ def get_prediction_metrics(
     probabilities_pos_class = softmax(logits, axis=-1)[:, 1]
     # Get all fpr, tpr values for the roc curve
     fpr, tpr, _ = roc_curve(y_true=labels, y_score=probabilities_pos_class, drop_intermediate=False)
-    youden_metrics = youden_index.compute(prediction_scores=probabilities_pos_class, references=labels)   
+    youden_metrics = youden_index.compute(prediction_scores=probabilities_pos_class, references=labels)
     optimal_predictions = np.where(probabilities_pos_class >= youden_metrics["youden_threshold"], 1, 0)
 
     # Find the first tpr (sensitivity) that is greater than 0.9 and find the corresponding specificity
     spec_at_90_sens = 1 - fpr[np.where(tpr >= 0.9)[0][0]]
     # Do it the other way around
     sens_at_90_spec = tpr[np.where(1 - fpr >= 0.9)[0][-1]]
-   
+
     return {
         # ML metrics
         "accuracy": acc.compute(predictions=predictions, references=labels)["accuracy"],
@@ -106,15 +106,15 @@ def compute_metrics(
         # as eval_pred[0]
         right_dataset = [v for v in subject_labels.values() if len(v) == len(eval_pred[0])][0]
         subject_labels = right_dataset["subject_id"]
-    
+
     # 1) Item-level evaluation
     item_logits, item_labels = eval_pred
-    
+
     # 2) Subject-level evaluation: Aggregate multiple predictions for the same subject by averaging
     subject_level_logits = []
     subject_level_labels = []
     subject_level_ids = []
-    for subject in sorted(list(set(subject_labels))):
+    for subject in sorted(set(subject_labels)):
         subject_specific_logits = item_logits[np.where(np.array(subject_labels) == subject)]
         subject_specific_labels = item_labels[np.where(np.array(subject_labels) == subject)]
         subject_level_logits.append(np.mean(subject_specific_logits, axis=0))
@@ -122,18 +122,18 @@ def compute_metrics(
         subject_level_ids.append(subject)
     subject_level_logits = np.array(subject_level_logits)
     subject_level_labels = np.array(subject_level_labels)
-        
+
     # Initialize the result dictionary
     result = {}
-    
+
     # Get both 1) item-level and 2) subject-level metrics
     for labels, logits, metric_prefix in zip(
-        [item_labels, subject_level_labels], [item_logits, subject_level_logits], ["item", "subject"]
+        [item_labels, subject_level_labels], [item_logits, subject_level_logits], ["item", "subject"], strict=False
     ):
         metrics = get_prediction_metrics(logits, labels)
         metrics = {f"{metric_prefix}_{k}": v for k, v in metrics.items()}
-        # Add subject ids 
+        # Add subject ids
         metrics[f"{metric_prefix}_subject_ids"] = subject_level_ids
         result.update(metrics)
-            
+
     return result

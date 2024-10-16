@@ -176,9 +176,9 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
         if "subject" in self.config.name:
             # Get all subjects
             all_files = os.listdir(filepath)
-            all_subjects = set([
+            all_subjects = {
                 re.match(r"(s\d+)|(ARCK_AD_P\d+)|(MC_\d+)|(A_s\d+)|(sub_A\d+)", file_name)[0] for file_name in all_files
-            ])
+            }
             # Process each subject
             for subject in all_subjects:
                 # Define the parts of the interview data that are going to be used depending on the config name
@@ -281,6 +281,6 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
 
                 key += 1
                 # Add question ID
-                sentences["question_id"] = question_id.strip("_subject_wise")
+                sentences["question_id"] = question_id.strip("_subject_wise")  # noqa
 
                 yield key, sentences
