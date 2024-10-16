@@ -103,9 +103,9 @@ done
 
 # 5. Mlflow results to LaTeX tables
 # 5.1 Export the mlflow experiments to csv files
-mlflow experiments csv -x 685451340341447252 -o "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv"
-mlflow experiments csv -x 523382240786442755 -o "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv"
-mlflow experiments csv -x 136153611125199525 -o "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv"
+mlflow experiments csv -x 685451340341447252 -o "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv"  # Needs to be replaced with the correct experiment id
+mlflow experiments csv -x 523382240786442755 -o "${REPO_DIR}/data/output/mlflow-results/amyloid_cls.csv"  # Needs to be replaced with the correct experiment id
+mlflow experiments csv -x 136153611125199525 -o "${REPO_DIR}/data/output/mlflow-results/joint_ad_amyloid_cls.csv"  # Needs to be replaced with the correct experiment id
 # 5.2 Convert the csv files to LaTeX tables
 python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_hc_cls.csv" \
