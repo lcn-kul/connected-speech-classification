@@ -1,4 +1,5 @@
 """Prepare datasets that can be used for disease status classification."""
+
 import click
 import pandas as pd
 from datasets import concatenate_datasets, load_dataset, DownloadMode
@@ -85,14 +86,12 @@ def prepare_ad_vs_hc_dataset(
         # Healthy subjects ("ad_label" == 0) are required to have a CDR of 0 and a MMSE of 24 or above
         # (Prodromal) ADs ("ad_label" == 1) are required to have a CDR between 0.5 and 1 and a MMSE of 20 or above
         combined_dataset = combined_dataset.filter(
-            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24) or
-                            (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20)
+            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24)
+            or (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20)
         )
 
         # Filter by subjects that are either AD or HC
-        combined_dataset = combined_dataset.filter(
-            lambda example: example["ad_label"] in [0, 1]
-        )
+        combined_dataset = combined_dataset.filter(lambda example: example["ad_label"] in [0, 1])
         # Describe the dataset
         describe_dataset_labels(combined_dataset, "ad_label")
 
@@ -170,8 +169,8 @@ def prepare_amyloid_pos_vs_neg_dataset(
         # Healthy subjects ("ad_label" == 0) are required to have a CDR of 0 and a MMSE of 24 or above
         # (Prodromal) ADs ("ad_label" == 1) are required to have a CDR between 0.5 and 1 and a MMSE of 20 or above
         combined_dataset = combined_dataset.filter(
-            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24) or
-                            (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20)
+            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24)
+            or (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20)
         )
 
         # Filter by healthy subjects that are either amyloid positive or negative
@@ -252,9 +251,7 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
         # Flatten the dataset
         combined_dataset = combined_dataset.map(flatten_batch, batched=True)
         # Filter out the subjects that are not in the label file
-        combined_dataset = combined_dataset.filter(
-            lambda example: example["subject_id"] in labels.index
-        )
+        combined_dataset = combined_dataset.filter(lambda example: example["subject_id"] in labels.index)
         # Merge all the info from the label file into the dataset, map the info based on the subject ID
         combined_dataset = combined_dataset.map(
             lambda example: {
@@ -268,9 +265,13 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
         # (Prodromal) ADs ("ad_label" == 1) are required to have a CDR between 0.5 and 1 and a MMSE of 20 or above
         # And ADs are required to have an amyloid label of 1
         combined_dataset = combined_dataset.filter(
-            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24) or
-                            (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20 \
-                             and example["amyloid_label"] == 1)
+            lambda example: (example["ad_label"] == 0 and example["cdr"] == 0 and example["mmse"] >= 24)
+            or (
+                example["ad_label"] == 1
+                and 0.5 <= example["cdr"] <= 1
+                and example["mmse"] >= 20
+                and example["amyloid_label"] == 1
+            )
         )
         # Log the number of subjects
         logger.info(f"Number of subjects with labels: {len(set(combined_dataset['subject_id']))}")
@@ -346,8 +347,9 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
             if len(overlap_between_iterations) > 1:
                 # Log the percentage of overlap between the current split and each of the previous splits
                 for j, previous_split in enumerate(overlap_between_iterations[:-1]):
-                    overlap = len(set(amyloid_neg_first_half_subject_ids) & set(previous_split[0])) \
-                        / len(set(amyloid_neg_first_half_subject_ids))
+                    overlap = len(set(amyloid_neg_first_half_subject_ids) & set(previous_split[0])) / len(
+                        set(amyloid_neg_first_half_subject_ids)
+                    )
                     logger.info(f"Overlap with previous split {j}: {overlap}")
                 logger.info("\n")
 
@@ -369,12 +371,8 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
 
             # Stitch 3.1 and 3.2 together for an amyloid negative classification control task
             # But first add new labels that indicate the group
-            amyloid_neg_first_half_dataset = amyloid_neg_first_half_dataset.map(
-                lambda example: {**example, "group_label": 0}
-            )
-            amyloid_neg_second_half_dataset = amyloid_neg_second_half_dataset.map(
-                lambda example: {**example, "group_label": 1}
-            )
+            amyloid_neg_first_half_dataset = amyloid_neg_first_half_dataset.map(lambda example: {**example, "group_label": 0})
+            amyloid_neg_second_half_dataset = amyloid_neg_second_half_dataset.map(lambda example: {**example, "group_label": 1})
             amyloid_neg_baseline_dataset = concatenate_datasets(
                 [amyloid_neg_first_half_dataset, amyloid_neg_second_half_dataset]
             )

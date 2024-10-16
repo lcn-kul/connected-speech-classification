@@ -1,4 +1,5 @@
 """Visualize classification metrics based on results obtained from mlflow logging."""
+
 # Imports
 from glob import glob
 from typing import List
@@ -96,6 +97,7 @@ def plot_confusion_matrix(
     :type color_palette: str
     :return: The figure object.
     :rtype: plt.Figure
+    :raises ValueError: If the matrix is not a 2x2 matrix.
     """
     # Close any existing figures
     plt.close("all")

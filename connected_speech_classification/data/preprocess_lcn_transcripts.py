@@ -60,37 +60,33 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
             name="q1_short_subject_wise",
             version=VERSION,
             description="This dataset building configuration groups subjects together, only the first "
-                        "sub-question of the Q1 interview (the autobiographical interview)",
+            "sub-question of the Q1 interview (the autobiographical interview)",
         ),
         LCNBuilderConfig(
             name="q1_subject_wise",
             version=VERSION,
             description="This dataset building configuration groups subjects together, only using Q1 "
-                        "(the autobiographical interview)",
+            "(the autobiographical interview)",
         ),
         LCNBuilderConfig(
             name="q2_subject_wise",
             version=VERSION,
-            description="This dataset building configuration groups subjects together, only using Q2 "
-                        "(description of a day)",
+            description="This dataset building configuration groups subjects together, only using Q2 " "(description of a day)",
         ),
         LCNBuilderConfig(
             name="q3_subject_wise",
             version=VERSION,
-            description="This dataset building configuration groups subjects together, only using Q3 "
-                        "(news events)",
+            description="This dataset building configuration groups subjects together, only using Q3 " "(news events)",
         ),
         LCNBuilderConfig(
             name="q4_subject_wise",
             version=VERSION,
-            description="This dataset building configuration groups subjects together, only using Q4 "
-                        "(word descriptions)",
+            description="This dataset building configuration groups subjects together, only using Q4 " "(word descriptions)",
         ),
         LCNBuilderConfig(
             name="q5_subject_wise",
             version=VERSION,
-            description="This dataset building configuration groups subjects together, only using Q5 "
-                        "(cookie theft picture)",
+            description="This dataset building configuration groups subjects together, only using Q5 " "(cookie theft picture)",
         ),
         LCNBuilderConfig(
             name="subject_wise",
@@ -112,19 +108,14 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
                 features = datasets.Features(
                     {
                         "subject_id": datasets.Value("string"),
-                        "sentences_"
-                        + self.config.name[:2]: datasets.features.Sequence(
-                            datasets.Value("string")
-                        ),
+                        "sentences_" + self.config.name[:2]: datasets.features.Sequence(datasets.Value("string")),
                     }
                 )
             else:
                 features = datasets.Features(
                     {
                         "subject_id": datasets.Value("string"),
-                        "sentences_all": datasets.features.Sequence(
-                            datasets.Value("string")
-                        ),
+                        "sentences_all": datasets.features.Sequence(datasets.Value("string")),
                     }
                 )
         else:
@@ -198,11 +189,7 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
                 sentences = {}
                 # Get all the relevant files indicated by the previously defined file indicator
                 relevant_files = sort_fpack_files(
-                    [
-                        os.path.join(filepath, f)
-                        for f in os.listdir(filepath)
-                        if interview_parts_regex.search(f)
-                    ]
+                    [os.path.join(filepath, f) for f in os.listdir(filepath) if interview_parts_regex.search(f)]
                 )
                 q_chunks = []
 
@@ -241,18 +228,14 @@ class LCNDataset(datasets.GeneratorBasedBuilder):
                 sentences = {}
 
                 # Look for relevant files for a given interview_part in all subject directories
-                all_files: List[str] = []  # noqa
+                all_files: List[str] = []  # type: ignore
                 for dir_path, _, files in os.walk(filepath):
                     for x in files:
                         all_files.append(os.path.join(dir_path, x))
 
                 interview_part_regex = re.compile(".*" + interview_part + ".*.txt")
                 relevant_files = sort_fpack_files(
-                    [
-                        os.path.join(filepath, f)
-                        for f in all_files
-                        if interview_part_regex.search(f)
-                    ]
+                    [os.path.join(filepath, f) for f in all_files if interview_part_regex.search(f)]
                 )
                 # Aggregate subject-specific chunks into a combined list for a given question
                 q_chunks = []

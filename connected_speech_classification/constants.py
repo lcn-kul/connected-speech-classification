@@ -81,39 +81,24 @@ LCN_PREPROCESSING_SCRIPT_PATH = os.path.join(
 )
 
 # Load constants from environment variables (set in the .env file) or set a default one
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI") or os.path.join(
-    MODELS_DIR, "mlruns"
-)
+MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI") or os.path.join(MODELS_DIR, "mlruns")
 # Load the huggingface token env variable
 HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 # Load a constant for distinguishing between local and cluster execution (default = True)
-LOCAL_EXECUTION = (
-    os.getenv("LOCAL_EXECUTION") if os.getenv("LOCAL_EXECUTION") is not None else "True"
-)
+LOCAL_EXECUTION = os.getenv("LOCAL_EXECUTION") if os.getenv("LOCAL_EXECUTION") is not None else "True"
 # Constant for the maximum batch size that should be used during inference
-INFERENCE_BATCH_SIZE = int(os.getenv("INFERENCE_BATCH_SIZE")) or 4
+INFERENCE_BATCH_SIZE = int(os.getenv("INFERENCE_BATCH_SIZE")) or 4  # type: ignore
 # Huggingface access token for the Pred-based sentence embedding models
 HF_TOKEN_PRED_BERT = os.getenv("HF_TOKEN_PRED_BERT")
 # Directory for saving large datasets or language models from huggingface
-LARGE_DATASET_STORAGE_PATH = os.path.join(
-    os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "datasets"
-)
-LARGE_MODELS_STORAGE_PATH = os.path.join(
-    os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "transformers"
-)
-LARGE_HUB_STORAGE_PATH = os.path.join(
-    os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "hub"
-)
+LARGE_DATASET_STORAGE_PATH = os.path.join(os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "datasets")
+LARGE_MODELS_STORAGE_PATH = os.path.join(os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "transformers")
+LARGE_HUB_STORAGE_PATH = os.path.join(os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "hub")
 HUB_MODEL_ID = os.getenv("HUB_MODEL_ID") or "nlp-xxl-fine-tuned"
-LARGE_WHISPER_STORAGE_PATH = os.path.join(
-    os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "whisper"
-)
+LARGE_WHISPER_STORAGE_PATH = os.path.join(os.getenv("LARGE_HF_STORAGE_PATH") or "~/.cache/huggingface", "whisper")
 
 # Path to a default preprocessed AD vs amyloid negative control dataset
-AD_AM_NEG_HC_DATASET_DIR = os.path.join(
-    LARGE_DATASET_STORAGE_PATH,
-    "ad_half_neg_hc_subject_wise_0"
-)
+AD_AM_NEG_HC_DATASET_DIR = os.path.join(LARGE_DATASET_STORAGE_PATH, "ad_half_neg_hc_subject_wise_0")
 # Path to the directory with the saved predictions
 PREDICTIONS_DIR = os.path.join(OUTPUT_DIR, "predictions")
 
@@ -184,14 +169,38 @@ BRAIN_CHARACTERISTICS_TYPES = {
 
 # Metrics used for classification
 CLS_METRICS = [
-    "accuracy", "f1_macro", "f1", "precision_macro", "precision", "npv", "recall_macro", "f1_micro",
-    "precision_micro", "recall_micro", "recall", "specificity", "roc_auc", "sensitivity", "npv", "ppv",
-    "sens_at_90_spec", "spec_at_90_sens",
+    "accuracy",
+    "f1_macro",
+    "f1",
+    "precision_macro",
+    "precision",
+    "npv",
+    "recall_macro",
+    "f1_micro",
+    "precision_micro",
+    "recall_micro",
+    "recall",
+    "specificity",
+    "roc_auc",
+    "sensitivity",
+    "npv",
+    "ppv",
+    "sens_at_90_spec",
+    "spec_at_90_sens",
 ]
 MEDICAL_METRICS = [
-    "auc", "lower", "upper", "sensitivity", "specificity", "ppv", "npv",
+    "auc",
+    "lower",
+    "upper",
+    "sensitivity",
+    "specificity",
+    "ppv",
+    "npv",
 ]
 # lower and upper represent the confidence interval for the auc
 ML_METRICS = [
-    "accuracy", "f1", "precision", "recall",
+    "accuracy",
+    "f1",
+    "precision",
+    "recall",
 ]

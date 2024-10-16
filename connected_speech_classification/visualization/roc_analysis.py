@@ -79,7 +79,7 @@ def get_roc_auc_plot_cv(
         ylabel="True Positive Rate",
         title="Mean ROC curve",
     )
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis="both", which="major", labelsize=16)
     # Increase the font size of the x and y labels
     ax.xaxis.label.set_size(16)
     ax.yaxis.label.set_size(16)

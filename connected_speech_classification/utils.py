@@ -52,7 +52,7 @@ def describe_dataset_labels(
     :param dataset: Dataset to describe
     :type dataset: Dataset
     :param label: Name of the label column, defaults to "ad_label"
-    :type label: str, optional
+    :type label: str
     :return: String containing the dataset description
     :rtype: str
     """
@@ -61,10 +61,8 @@ def describe_dataset_labels(
     output_str += f"\nSubjects: {set(dataset['subject_id'])}"
     output_str += f"\nNumber of {label} = 1 subjects: {len(set(dataset.filter(lambda x: x[label] == 1)['subject_id']))}"
     output_str += f"\nNumber of {label} = 0 subjects: {len(set(dataset.filter(lambda x: x[label] == 0)['subject_id']))}"
-    output_str += (f"\nProportion of {label} = 1 subjects: "
-                   f"{len(dataset.filter(lambda x: x[label] == 1)) / len(dataset):.2f}")
-    output_str += (f"\nProportion of {label} = 0 subjects: "
-                   f"{len(dataset.filter(lambda x: x[label] == 0)) / len(dataset):.2f}")
+    output_str += f"\nProportion of {label} = 1 subjects: " f"{len(dataset.filter(lambda x: x[label] == 1)) / len(dataset):.2f}"
+    output_str += f"\nProportion of {label} = 0 subjects: " f"{len(dataset.filter(lambda x: x[label] == 0)) / len(dataset):.2f}"
 
     logger.info(output_str)
 
@@ -92,9 +90,7 @@ def flatten_batch(
 
     # Repeat each other feature as many times as the number of sentences for that subject
     for k in other_keys:
-        feauture = [
-            [examples[k][i]] * len(examples[sentence_key][i]) for i in range(len(examples[k]))
-        ]
+        feauture = [[examples[k][i]] * len(examples[sentence_key][i]) for i in range(len(examples[k]))]
         # Flatten the list of lists into one list
         feature_flattened = [item for sublist in feauture for item in sublist]
         # Add the feature to the results
@@ -103,13 +99,13 @@ def flatten_batch(
     return res
 
 
-def flatten(
+def flatten(  # type: ignore
     xs: List,
-) -> List: # type: ignore
+) -> List:  # type: ignore
     """Taken from https://stackoverflow.com/questions/2158395/flatten-an-irregular-list-of-lists."""
     for x in xs:
         if isinstance(x, Iterable) and not isinstance(x, (str, bytes)):
-            yield from flatten(x)
+            yield from flatten(x)  # type: ignore
         else:
             yield x
 
@@ -135,7 +131,7 @@ def generate_long_sentence_chunks_for_several_files(
     :param file_paths: Paths to the files to be processed.
     :type file_paths: List[str]
     :param max_length: Maximum length of the chunks, defaults to 4096 words (approximation of tokens)
-    :type max_length: int, optional
+    :type max_length: int
     :param replace_punctuation: Whether to replace the punctuation/insert if not present or not, defaults to True.
     :type replace_punctuation: bool
     :param lowercase: Whether to lowercase the text or not, defaults to False.
@@ -161,7 +157,7 @@ def generate_long_sentence_chunks_for_several_files(
             # Add a space at the very end to make sure the last sentence is also included
             text = text + " "
             if replace_punctuation:
-                text = punc_model.restore_punctuation(text)  # noqa
+                text = punc_model.restore_punctuation(text)  # type: ignore
             if lowercase:
                 text = text.lower()
             all_texts.append(text)
@@ -184,12 +180,12 @@ def generate_long_sentence_chunks_for_several_files(
     # If there is no punctuation
     if len(q_raw_sentences) == 0:
         # Combine all_texts
-        all_texts = " ".join(all_texts)
+        all_texts = " ".join(all_texts)  # type: ignore
         # Split the text into chunks of max_length based on the number of tokens
         tok_splits = tokenizer(all_texts)["input_ids"][1:]
         chunks = [
-            tokenizer.decode(tok_splits[i * max_length: (i + 1) * max_length]).strip(" </s>") for i in
-            range(len(tok_splits) // max_length + 1)
+            tokenizer.decode(tok_splits[i * max_length : (i + 1) * max_length]).strip(" </s>")
+            for i in range(len(tok_splits) // max_length + 1)
         ]
         return chunks
 
@@ -243,8 +239,8 @@ def generate_sentence_chunks_per_file(
             # Use a tokenizer to count the number of tokens instead of the number of words
             tok_splits = tokenizer(text)["input_ids"][1:]
             chunks = [
-                tokenizer.decode(tok_splits[i * max_length: (i + 1) * max_length]).strip(" </s>") for i in
-                range(len(tok_splits) // max_length + 1)
+                tokenizer.decode(tok_splits[i * max_length : (i + 1) * max_length]).strip(" </s>")
+                for i in range(len(tok_splits) // max_length + 1)
             ]
             return chunks
 
@@ -252,7 +248,7 @@ def generate_sentence_chunks_per_file(
         if replace_punctuation:
             clean_text = text.replace(" . ", " ")
             # Use the punctuation restoration model here
-            text = punc_model.restore_punctuation(clean_text)  # noqa
+            text = punc_model.restore_punctuation(clean_text)  # type: ignore
 
         # Split the text by period in all other cases
         q_raw_sentences = re.findall(r".*?[.\?] ", text)
@@ -286,14 +282,8 @@ def map_autobiographical_parts_to_combined(
     input_example: Dict,
 ) -> Dict:
     """Combine all parts of the autobiographical interview into one combined sentences input."""
-    sentences_combined_unflattened = [
-        input_example[key] for key in input_example.keys() if "sentences" in key
-    ]
-    return {
-        "sentences_combined": [
-            item for sublist in sentences_combined_unflattened for item in sublist
-        ]
-    }
+    sentences_combined_unflattened = [input_example[key] for key in input_example.keys() if "sentences" in key]
+    return {"sentences_combined": [item for sublist in sentences_combined_unflattened for item in sublist]}
 
 
 def sort_fpack_files(
@@ -301,10 +291,7 @@ def sort_fpack_files(
 ) -> List[str]:
     """Sort the regex/glob matches of the file names according to the order they would appear in the interview."""
     interview_order = [Q_FILE_MAPPINGS[key] for key in sorted(Q_FILE_MAPPINGS.keys())]
-    matches = [
-        sorted([f for f in file_names if interview_part in f])
-        for interview_part in interview_order
-    ]
+    matches = [sorted([f for f in file_names if interview_part in f]) for interview_part in interview_order]
     matches_flattened = [item for sublist in matches for item in sublist]
     return matches_flattened
 
@@ -347,17 +334,14 @@ def get_train_test_datasets(
         # the multiple datasets case
         train_dataset = []
         for name, specific_train_idx in zip(combined_datasets.keys(), train_idx, strict=False):
-            train_subjects = [unique_subjects_all_datasets[name][i] for i in specific_train_idx]
+            train_subjects = [unique_subjects_all_datasets[name][i] for i in specific_train_idx]  # type: ignore
             train_dataset.append(combined_datasets[name].filter(lambda x: x["subject_id"] in train_subjects))
 
         # Instead of directly interleaving the datasets, which would interleave the individual examples,
         # we want to interleave batches, so that each batch is from one dataset
         # For that we split the dataset into smaller datasets of size batch_size
         train_dataset = [
-            [
-                dataset.select(range(i, min(i + batch_size, len(dataset))))
-                for i in range(0, len(dataset), batch_size)
-            ]
+            [dataset.select(range(i, min(i + batch_size, len(dataset)))) for i in range(0, len(dataset), batch_size)]
             for dataset in train_dataset
         ]
         # Put the last examples that are shorter than the batch size aside
@@ -372,7 +356,7 @@ def get_train_test_datasets(
 
         test_dataset = {}
         for name, specific_test_idx in zip(combined_datasets.keys(), test_idx, strict=False):
-            test_subjects = [unique_subjects_all_datasets[name][i] for i in specific_test_idx]
+            test_subjects = [unique_subjects_all_datasets[name][i] for i in specific_test_idx]  # type: ignore
             test_dataset[name] = combined_datasets[name].filter(lambda x: x["subject_id"] in test_subjects)
 
     return train_dataset, test_dataset
@@ -401,7 +385,7 @@ def log_data_split_specific_auc_metrics(
     # Get the confidence interval for the ROC AUC
     ci = st.t.interval(
         confidence=0.95,
-        df=len(fold_metrics[f"{task}{level}_roc_auc"])-1,
+        df=len(fold_metrics[f"{task}{level}_roc_auc"]) - 1,
         loc=np.mean(fold_metrics[f"{task}{level}_roc_auc"]),
         scale=st.sem(fold_metrics[f"{task}{level}_roc_auc"]),
     )

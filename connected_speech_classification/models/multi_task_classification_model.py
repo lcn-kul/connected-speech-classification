@@ -1,4 +1,5 @@
 """A custom SequenceClassificationModel for multi-task classification."""
+
 from typing import Optional, Tuple, Union
 
 import torch
@@ -14,6 +15,7 @@ from transformers.modeling_outputs import SequenceClassifierOutput
 
 class MultiTaskConfig(PretrainedConfig):
     """A custom configuration for multi-task classification of disease and amyloid status."""
+
     model_type = "multi_task"
 
     def __init__(
@@ -29,6 +31,7 @@ class MultiTaskConfig(PretrainedConfig):
 
 class MultiTaskSequenceClassificationModel(PreTrainedModel):
     """A custom SequenceClassificationModel for multi-task classification of disease and amyloid status."""
+
     config_class = MultiTaskConfig
 
     def __init__(self, model_name, config, cache_dir=None):
@@ -105,6 +108,7 @@ class MultiTaskSequenceClassificationModel(PreTrainedModel):
         :type task_ids: torch.LongTensor
         :return: The logits or the output.
         :rtype: Union[Tuple[torch.Tensor], SequenceClassifierOutput]
+        :raises ValueError: If the task is not supported.
         """
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
@@ -146,7 +150,7 @@ class MultiTaskSequenceClassificationModel(PreTrainedModel):
         loss = None
         if labels is not None:
             # move labels to correct device to enable model parallelism
-            labels = labels.to(logits.device)
+            labels = labels.to(logits.device)  # type: ignore
             if self.config.problem_type is None:
                 if self.num_labels == 1:
                     self.config.problem_type = "regression"
@@ -158,12 +162,12 @@ class MultiTaskSequenceClassificationModel(PreTrainedModel):
             if self.config.problem_type == "regression":
                 loss_fct = MSELoss()
                 if self.num_labels == 1:
-                    loss = loss_fct(logits.squeeze(), labels.squeeze())
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())  # type: ignore
                 else:
                     loss = loss_fct(logits, labels)
             elif self.config.problem_type == "single_label_classification":
                 loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))  # type: ignore
             elif self.config.problem_type == "multi_label_classification":
                 loss_fct = BCEWithLogitsLoss()
                 loss = loss_fct(logits, labels)

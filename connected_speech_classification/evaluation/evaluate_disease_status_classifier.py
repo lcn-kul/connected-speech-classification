@@ -1,4 +1,5 @@
 """Some helper functions to evaluate a disease status classifier."""
+
 # Imports
 from typing import Dict, Union
 
@@ -17,6 +18,7 @@ recall = load("recall")
 roc_auc = load("roc_auc")
 youden_index = load("helena-balabin/youden_index")
 conf_matrix = load("confusion_matrix")
+
 
 def get_prediction_metrics(
     logits: np.ndarray,
@@ -96,7 +98,7 @@ def compute_metrics(
     :param subject_labels: List of subject labels
     :type subject_labels: Union[Dataset, Dict]
     :return: Dictionary with variants of precision, f1 and accuracy, recall, specificity and NPV
-    Dict[str, float]
+    :rtype: Dict[str, float]
     """
     # Get the subject_labels: See which type this is
     if isinstance(subject_labels, Dataset):
@@ -133,7 +135,7 @@ def compute_metrics(
         metrics = get_prediction_metrics(logits, labels)
         metrics = {f"{metric_prefix}_{k}": v for k, v in metrics.items()}
         # Add subject ids
-        metrics[f"{metric_prefix}_subject_ids"] = subject_level_ids
+        metrics[f"{metric_prefix}_subject_ids"] = subject_level_ids  # type: ignore
         result.update(metrics)
 
     return result
