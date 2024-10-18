@@ -11,7 +11,7 @@ Classification of Alzheimer's disease and Amyloid Status from Transcribed Connec
 To install the code, do the following:
 
 ```
-pip install git+https://github.com/lcn-kul/connected_speech_classification.git
+pip install git+https://github.com/lcn-kul/connected-speech-classification.git
 ```
 
 Requirements can be installed from the ```requirements.txt``` file doing something like this:
