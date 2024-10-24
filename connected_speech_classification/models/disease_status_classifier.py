@@ -226,7 +226,7 @@ def classify_disease_label(
                 combined_dataset = load_from_disk(data_path)
                 # Get the correct label depending on whether amyloid status should be classified or AD vs HC or
                 # baseline classification (amyloid neg group 1 vs amyloid neg group 2)
-                if "baseline" in data_path:
+                if "baseline" or "imb" in data_path:
                     label_key = "group_label"
                 elif "amyloid" in data_path:
                     label_key = "amyloid_label"

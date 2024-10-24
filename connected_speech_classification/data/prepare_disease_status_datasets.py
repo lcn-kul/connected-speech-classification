@@ -2,7 +2,7 @@
 
 import click
 import pandas as pd
-from datasets import concatenate_datasets, load_dataset, DownloadMode
+from datasets import concatenate_datasets, load_dataset, load_from_disk, DownloadMode
 from loguru import logger
 from scipy.stats import ttest_ind
 from sklearn.model_selection import train_test_split
@@ -388,6 +388,99 @@ def prepare_ad_hc_amyloid_pos_neg_datasets(
             amyloid_neg_baseline_dataset.save_to_disk(f"{output_dir}/amyloid_neg_baseline_{config}_{i}")
 
 
+@click.command()
+@click.option("--data_dir", default=LARGE_DATASET_STORAGE_PATH, type=str)
+@click.option("--members_group_one", default=14, type=int)
+@click.option("--n_data_splits", default=5, type=int)
+def prepare_am_neg_neg_imb_datasets(
+    data_dir: str = LARGE_DATASET_STORAGE_PATH,
+    members_group_one: int = 14,
+    n_data_splits: int = 5,
+):
+    """Prepare the amyloid negative vs negative dataset for the control classification task.
+
+    This set splits the amyloid negative healthy group into two groups that are matched by age, sex
+    and education. But here, it is an imbalanced case, where group1/2 should resemble the amyloid +/-
+    classification case.
+
+    :param data_dir: Path to the data directory.
+    :type data_dir: str
+    :param members_group_one: Number of members in the first group.
+    :type members_group_one: int
+    :param n_data_splits: Number of data splits.
+    :type n_data_splits: int
+    """
+    # Iterate over the data splits
+    for i in range(n_data_splits):
+        # Get one of the amyloid negative datasets as an example to get the subject IDs
+        amyloid_neg_dataset_ex = load_from_disk(f"{data_dir}/amyloid_neg_baseline_{FPACK_CONFIGS[-2]}_{i}")
+
+        # Make a dataframe out of the dataset
+        amyloid_neg_dataset_ex_df = amyloid_neg_dataset_ex.to_pandas()
+
+        random_state = 0
+        matched_for_variables = False
+
+        # Sample members_group_one subjects from the first group (=0) until there is a matched set
+        while not matched_for_variables:
+            group_one_df = amyloid_neg_dataset_ex_df[
+                amyloid_neg_dataset_ex_df["group_label"] == 1
+            ].sample(members_group_one, random_state=random_state)
+            # Check that the age is matched
+            p_value_age = ttest_ind(
+                group_one_df["age"],
+                amyloid_neg_dataset_ex_df.loc[
+                    amyloid_neg_dataset_ex_df["group_label"] == 0, "age"
+                ],
+                equal_var=False,
+            )[1]
+            # Check that the gender is matched
+            p_value_gender = ttest_ind(
+                group_one_df["gender"],
+                amyloid_neg_dataset_ex_df.loc[
+                    amyloid_neg_dataset_ex_df["group_label"] == 0, "gender"
+                ],
+                equal_var=False,
+            )[1]
+            # Check that the age is matched
+            p_value_education = ttest_ind(
+                group_one_df["education"],
+                amyloid_neg_dataset_ex_df.loc[
+                    amyloid_neg_dataset_ex_df["group_label"] == 0, "education"
+                ],
+                equal_var=False,
+            )[1]
+            matched_for_variables = p_value_age >= 0.05 and p_value_gender >= 0.05 and p_value_education >= 0.05
+            logger.info(
+                f"Data split {i} matched? {matched_for_variables}"
+            )
+            random_state += 1
+
+        logger.info("\n")
+
+        # Get the subject IDs of the new groups
+        group_one_subjects = list(group_one_df["subject_id"].values)
+        group_two_subjects = list(amyloid_neg_dataset_ex_df[
+            amyloid_neg_dataset_ex_df["group_label"] == 0
+        ]["subject_id"].values)
+
+        # Iterate over the different configurations
+        for config in FPACK_CONFIGS:
+            # Load the baseline dataset
+            amyloid_neg_baseline_dataset = load_from_disk(
+                f"{data_dir}/amyloid_neg_baseline_{config}_{i}",
+            )
+            # Subset the dataset based on the new groups
+            amyloid_neg_imb = amyloid_neg_baseline_dataset.filter(
+                lambda example: example["subject_id"] in group_one_subjects \
+                    or example["subject_id"] in group_two_subjects
+            )
+            # Shuffle the dataset with a fixed seed
+            amyloid_neg_imb = amyloid_neg_imb.shuffle(seed=42)
+            # Save the dataset
+            amyloid_neg_imb.save_to_disk(f"{data_dir}/amyloid_neg_imb_{config}_{i}")
+
+
 @click.group()
 def cli() -> None:
     """Prepare datasets with text and diagnostic labels for classification."""
@@ -397,4 +490,5 @@ if __name__ == "__main__":
     cli.add_command(prepare_ad_vs_hc_dataset)
     cli.add_command(prepare_amyloid_pos_vs_neg_dataset)
     cli.add_command(prepare_ad_hc_amyloid_pos_neg_datasets)
+    cli.add_command(prepare_am_neg_neg_imb_datasets)
     cli()

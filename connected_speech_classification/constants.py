@@ -14,10 +14,10 @@ SOURCE_DIR = os.path.join(os.path.abspath(os.path.join(HERE, os.pardir)))
 PROJECT_DIR = os.path.join(os.path.abspath(os.path.join(HERE, os.pardir)))
 
 # Directory for data, logs, models, notebooks
-DATA_DIR = os.path.join(os.sep.join(PROJECT_DIR.split(os.sep)[:-1]), "data")
-LOGS_DIR = os.path.join(os.sep.join(PROJECT_DIR.split(os.sep)[:-1]), "logs")
-MODELS_DIR = os.path.join(os.sep.join(PROJECT_DIR.split(os.sep)[:-1]), "models")
-NOTEBOOKS_DIR = os.path.join(os.sep.join(PROJECT_DIR.split(os.sep)[:-1]), "notebooks")
+DATA_DIR = os.path.join(PROJECT_DIR, "data")
+LOGS_DIR = os.path.join(PROJECT_DIR, "logs")
+MODELS_DIR = os.path.join(PROJECT_DIR, "models")
+NOTEBOOKS_DIR = os.path.join(PROJECT_DIR, "notebooks")
 # See if a separate large storage directory should be used for large project-specific datasets and models
 LARGE_NLP_HBT_STORAGE_DIR = os.getenv("LARGE_NLP_HBT_STORAGE_PATH") or DATA_DIR
 
