@@ -164,6 +164,7 @@ def get_latex_table(
     :return: The LaTeX table
     :rtype: str
     """
+    mlflow_results_item_subject = mlflow_results.copy()
     # If the data_split is not -1, remove the column that has "sem" in it
     if len(mlflow_results["params.data_split"]) > 0 and mlflow_results["params.data_split"].iloc[0] > 0:
         mlflow_results_item_subject = mlflow_results_item_subject.drop(  # noqa
@@ -233,7 +234,7 @@ def get_latex_table(
     mlflow_results_item_subject = mlflow_results_item_subject.drop(columns=["lower", "upper"])
 
     # In the params.config column, replace the config file name with the actual name
-    mlflow_results_item_subject["config"] = mlflow_results_item_subject["config"].map(Q_FILE_MAPPING_NAMES)
+    mlflow_results_item_subject["config"] = mlflow_results_item_subject["config"].map(Q_FILE_MAPPING_NAMES.get)
 
     # Create the LaTeX table using the pandas to LaTeX method
     latex_table = mlflow_results_item_subject.to_latex(index=False, escape=True)
