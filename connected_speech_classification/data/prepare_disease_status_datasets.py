@@ -184,7 +184,7 @@ def prepare_ad_vs_am_pos_datasets(
         describe_dataset_labels(combined_dataset, "ad_label")
 
         # Save the dataset
-        combined_dataset.save_to_disk(f"{output_dir}/ad_am_pos_{config}")
+        combined_dataset.save_to_disk(f"{output_dir}/ad_am_pos_{config}_0")
 
 
 @click.command()

@@ -25,7 +25,7 @@ MLFLOW_URI="${LARGE_DATA_DIR}/mlflow/mlruns"
 MODEL_BASE="helena-balabin/robbert-2023-dutch-base-ft-nlp-xxl"
 
 # 1. Data processing
-# python3 $REPO_DIR/connected_speech_classification/data/prepare_disease_status_datasets.py prepare-am-neg-neg-imb-datasets
+python3 $REPO_DIR/connected_speech_classification/data/prepare_disease_status_datasets.py prepare-ad-vs-am-pos-datasets
 
 # 2. Classification of AD versus amyloid positive CU
 for q in "${allQs[@]}"; do
@@ -33,20 +33,17 @@ python3 $REPO_DIR/connected_speech_classification/models/disease_status_classifi
 	--config "$q" \
 	--batch_size $BATCH_SIZE \
 	--epochs $EPOCHS \
+	--n_data_splits 1 \
 	--gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
-	--dataset_dir "${LARGE_DATA_DIR}/huggingface/datasets/ad_am_pos_$q" \  # TODO change !!!
+	--dataset_dir "${LARGE_DATA_DIR}/huggingface/datasets/ad_am_pos_$q" \
 	--mlflow_tracking_uri $MLFLOW_URI \
 	--classification_model_base $MODEL_BASE
 done
 
 # 3. Mlflow results to LaTeX tables
 # 3.1 Export the mlflow experiments to csv files
-mlflow experiments csv -x 861177041110502316 -o "${REPO_DIR}/data/output/mlflow-results/ad_am_pos_cls.csv"  # TODO exp id
+mlflow experiments csv -x 685451340341447252 -o "${REPO_DIR}/data/output/mlflow-results/ad_am_pos_cls.csv"
 
 # 3.2 Convert the csv files to LaTeX tables
 python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
 	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_am_pos_cls.csv"
-
-# 3.3 Also for the first data_split
-python3 $REPO_DIR/connected_speech_classification/evaluation/format_mlflow_results.py convert-mlflow-tables \
-	--result_file "${REPO_DIR}/data/output/mlflow-results/ad_am_pos_cls.csv" --data_split 0
