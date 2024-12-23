@@ -73,7 +73,7 @@ Q_FILE_MAPPING_NAMES = {
 }
 
 # Filepath for the custom huggingface data loading scripts
-PACKAGE_DIR = os.path.join(PROJECT_DIR, "nlphumanbraintext")
+PACKAGE_DIR = os.path.join(PROJECT_DIR, "connected_speech_classification")
 PACKAGE_DATA_DIR = os.path.join(PACKAGE_DIR, "data")
 LCN_PREPROCESSING_SCRIPT_PATH = os.path.join(
     PACKAGE_DATA_DIR,

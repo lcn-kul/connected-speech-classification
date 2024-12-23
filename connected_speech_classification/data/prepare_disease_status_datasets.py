@@ -108,6 +108,94 @@ def prepare_ad_vs_hc_dataset(
 )
 @click.option("--label_file", default=LABEL_METADATA_FILE, type=str)
 @click.option("--max_seq_len", default=512, type=int)
+@click.option("--longformer", is_flag=True, default=False)
+@click.option("--output_dir", default=LARGE_DATASET_STORAGE_PATH, type=str)
+def prepare_ad_vs_am_pos_datasets(
+    combined_dataset_dir: str = COMBINED_INPUT_DIR,
+    preprocessing_script: str = LCN_PREPROCESSING_SCRIPT_PATH,
+    label_file: str = LABEL_METADATA_FILE,
+    max_seq_len: int = 512,
+    longformer: bool = False,
+    replace_punctuation: bool = False,
+    output_dir: str = LARGE_DATASET_STORAGE_PATH,
+):
+    """Prepare the prodromal AD vs amyloid+ CU dataset.
+
+    :param combined_dataset_dir: Path to the combined transcript dataset directory.
+    :type combined_dataset_dir: str
+    :param preprocessing_script: Path to the preprocessing script.
+    :type preprocessing_script: str
+    :param label_file: Path to the label metadata file.
+    :type label_file: str
+    :param max_seq_len: Maximum sequence length.
+    :type max_seq_len: int
+    :param longformer: Whether the input should be processed for a model that can handle longer
+        input lengths (combine multiple files).
+    :type longformer: bool
+    :param replace_punctuation: Whether to (re)place punctuation with a punctuation restoration model.
+    :type replace_punctuation: bool
+    :param output_dir: Path to the output directory.
+    :type output_dir: str
+    """
+    # Load the label file
+    labels = pd.read_csv(label_file, index_col=0)
+
+    for config in FPACK_CONFIGS:
+        # Load the text files
+        combined_dataset = load_dataset(
+            preprocessing_script,
+            config,
+            data_dir=combined_dataset_dir,
+            split="train",
+            download_mode=DownloadMode.FORCE_REDOWNLOAD,
+            max_seq_len=max_seq_len,
+            longformer=longformer,
+            punctuation=replace_punctuation,
+            cache_dir=LARGE_DATASET_STORAGE_PATH,
+        )
+
+        # Flatten the dataset
+        combined_dataset = combined_dataset.map(flatten_batch, batched=True)
+        # Filter out the subjects that are not in the label file
+        combined_dataset = combined_dataset.filter(lambda example: example["subject_id"] in labels.index)
+        # Merge all the info from the label file into the dataset, map the info based on the subject ID
+        combined_dataset = combined_dataset.map(
+            lambda example: {
+                **example,
+                **labels[labels.index == example["subject_id"]].to_dict(orient="records")[0],
+            }
+        )
+
+        # Filter by inclusion/exclusion criteria
+        # Amyloid+ CU ("ad_label" == 0 and "amyloid_label" == 1) are required to have a CDR of 0
+        # and a MMSE of 24 or above
+        # (Prodromal) ADs ("ad_label" == 1) are required to have a CDR between 0.5 and 1 and a MMSE of 20 or above
+        combined_dataset = combined_dataset.filter(
+            lambda example: (
+                example["ad_label"] == 0 and example["amyloid_label"] == 1 and \
+                    example["cdr"] == 0 and example["mmse"] >= 24
+            )
+            or (example["ad_label"] == 1 and 0.5 <= example["cdr"] <= 1 and example["mmse"] >= 20)
+        )
+
+        # Filter by subjects that are either AD or amyloid+ CU
+        combined_dataset = combined_dataset.filter(lambda example: example["ad_label"] in [0, 1])
+        # Describe the dataset
+        describe_dataset_labels(combined_dataset, "ad_label")
+
+        # Save the dataset
+        combined_dataset.save_to_disk(f"{output_dir}/ad_am_pos_{config}")
+
+
+@click.command()
+@click.option("--combined_dataset_dir", default=COMBINED_INPUT_DIR, type=str)
+@click.option(
+    "--preprocessing_script",
+    default=LCN_PREPROCESSING_SCRIPT_PATH,
+    type=str,
+)
+@click.option("--label_file", default=LABEL_METADATA_FILE, type=str)
+@click.option("--max_seq_len", default=512, type=int)
 @click.option("--replace_punctuation", default=False, type=bool)
 @click.option("--longformer", is_flag=True, default=False)
 @click.option("--output_dir", default=LARGE_DATASET_STORAGE_PATH, type=str)
@@ -491,4 +579,5 @@ if __name__ == "__main__":
     cli.add_command(prepare_amyloid_pos_vs_neg_dataset)
     cli.add_command(prepare_ad_hc_amyloid_pos_neg_datasets)
     cli.add_command(prepare_am_neg_neg_imb_datasets)
+    cli.add_command(prepare_ad_vs_am_pos_datasets)
     cli()
